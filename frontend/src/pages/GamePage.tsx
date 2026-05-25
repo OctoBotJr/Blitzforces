@@ -10,6 +10,7 @@ import { useTimer } from "../hooks/useTimer";
 import { useAuth } from "../context/AuthContext";
 import { useDuel } from "../hooks/useDuel";
 import type { Problem } from "../types";
+import type { Verdict } from "../types";
 
 type Screen = "matchmaking" | "game";
 
@@ -127,7 +128,7 @@ function BattleArena({ duelState }: { duelState: ReturnType<typeof useDuel> }) {
                 ?.filter((s) => s.handle === duel.players.me.handle)
                 .map((s) => ({
                   id: String(s.id),
-                  verdict: s.verdict,
+                  verdict: s.verdict as Verdict,
                   language: "GNU C++17",
                   timeMs: null,
                   memoryMb: null,
@@ -147,7 +148,7 @@ function BattleArena({ duelState }: { duelState: ReturnType<typeof useDuel> }) {
                 ?.filter((s) => s.handle === duel.players.opponent.handle)
                 .map((s) => ({
                   id: String(s.id),
-                  verdict: s.verdict,
+                  verdict: s.verdict as Verdict,
                   language: "GNU C++17",
                   timeMs: null,
                   memoryMb: null,

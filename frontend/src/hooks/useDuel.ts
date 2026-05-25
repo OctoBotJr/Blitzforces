@@ -30,6 +30,7 @@ export interface DuelStatus {
   }[];
   winner: number | null;
   endsAt: string;
+  winnerHandle?: string | null;
 }
 
 export function useDuel() {

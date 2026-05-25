@@ -8,8 +8,6 @@ import GamePage from "./pages/GamePage";
 import ProfilePage from "./pages/ProfilePage";
 import FriendsPage from "./pages/FriendsPage";
 import RankingsPage from "./pages/RankingsPage";
-import ProblemsPage from "./pages/ProblemsPage";
-import NotificationsPage from "./pages/NotificationsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -57,22 +55,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <RankingsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/problems"
-        element={
-          <ProtectedRoute>
-            <ProblemsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/notifications"
-        element={
-          <ProtectedRoute>
-            <NotificationsPage />
           </ProtectedRoute>
         }
       />

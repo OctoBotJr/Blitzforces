@@ -1,10 +1,10 @@
 import { useState } from "react";
-import type { GameHistoryEntry } from "../../data/profileData";
 import { getRatingColor } from "../../utils/rating";
 
 interface GameHistoryTableProps {
   entries: GameHistoryEntry[];
 }
+type GameHistoryEntry = any;
 
 type Filter = "all" | "won" | "lost" | "bet" | "rated" | "quick";
 
