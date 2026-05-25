@@ -13,6 +13,8 @@ import type { Problem } from "../types";
 
 type Screen = "matchmaking" | "game";
 
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 export default function GamePage() {
   // Lift useDuel to top so both screens share the same state
   const duelState = useDuel();
@@ -75,7 +77,7 @@ function BattleArena({ duelState }: { duelState: ReturnType<typeof useDuel> }) {
 
     const token = localStorage.getItem("bf-token");
     try {
-      await fetch(`http://localhost:3000/duel/${duel.id}/forfeit`, {
+      await fetch(`${API}/duel/${duel.id}/forfeit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
