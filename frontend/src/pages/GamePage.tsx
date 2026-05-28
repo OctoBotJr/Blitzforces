@@ -1,84 +1,47 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "../components/layout/Navbar";
-import MatchmakingScreen from "../components/matchmaking/MatchmakingScreen";
-import PlayerHeader from "../components/game/PlayerHeader";
-import ProblemBar from "../components/game/ProblemBar";
-import SubmissionPanel from "../components/game/SubmissionPanel";
-import ResultBanner from "../components/game/ResultBanner";
-import { useTimer } from "../hooks/useTimer";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDuel } from "../hooks/useDuel";
-import type { Problem } from "../types";
-import type { Verdict } from "../types";
-
-type Screen = "matchmaking" | "game";
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export default function GamePage() {
-  // Lift useDuel to top so both screens share the same state
-  const duelState = useDuel();
-
-  const [screen, setScreen] = useState<Screen>(
-    duelState.duelId ? "game" : "matchmaking",
-  );
+  const { duelId } = useParams();
+  const navigate = useNavigate();
+  const { duel, fetchDuel } = useDuel();
+  const [time, setTime] = useState(0);
 
   useEffect(() => {
-    if (duelState.mmStatus === "matched" && duelState.duelId) {
-      setScreen("game");
+    if (duelId) {
+      fetchDuel(duelId);
     }
-  }, [duelState.mmStatus, duelState.duelId]);
+  }, [duelId]);
 
-  return screen === "matchmaking" ? (
-    <div className="flex flex-col min-h-screen bg-base font-syne">
-      <Navbar centerLabel="Finding match" />
-      <MatchmakingScreen duelState={duelState} />
-    </div>
-  ) : (
-    <div className="flex flex-col min-h-screen bg-base font-syne">
-      <Navbar centerLabel="Rated Battle" />
-      <BattleArena duelState={duelState} />
-    </div>
-  );
-}
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-function BattleArena({ duelState }: { duelState: ReturnType<typeof useDuel> }) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { duel } = duelState;
-
-  const { remainingSeconds } = useTimer(duel?.endsAt);
-
-  // Watch for duel finish
-  const isDone = duel?.status === "finished";
-  const didIWin = duel?.winnerHandle === user?.cfHandle;
-  // Use real duel data if available, fallback to loading state
-  const problem: Problem | null = duel
-    ? {
-        id: duel.problem.id,
-        name: duel.problem.title,
-        contest: `CF Problem ${duel.problem.id}`,
-        rating: duel.problem.rating,
-        cfUrl: duel.problem.cfUrl,
-      }
-    : null;
-
-  const ratingDelta = 10; // normal mode fixed
-
-  if (!problem) {
+  if (!duel) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-white/30 font-mono animate-pulse">Loading duel...</p>
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading duel...</p>
       </div>
     );
   }
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   async function handleForfeit() {
     if (!duel) return;
 
     const token = localStorage.getItem("bf-token");
     try {
-      await fetch(`${API}/duel/${duel.id}/forfeit`, {
+      await fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:3000"}/duel/${duel.id}/forfeit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -91,104 +54,30 @@ function BattleArena({ duelState }: { duelState: ReturnType<typeof useDuel> }) {
     }
   }
   return (
-    <div className="flex flex-col flex-1">
-      <PlayerHeader
-        elapsed={remainingSeconds}
-        playerLeft={{
-          handle: duel!.players.me.handle,
-          rating: duel!.players.me.rating,
-          initials: duel!.players.me.handle.slice(0, 2).toUpperCase(),
-          avatarGradient: "linear-gradient(135deg, #3b30a0, #7c6af7)",
-          submissionCount:
-            duel?.submissions?.filter(
-              (s) => s.handle === duel.players.me.handle,
-            ).length ?? 0,
-          isMe: true,
-        }}
-        playerRight={{
-          handle: duel!.players.opponent.handle,
-          rating: duel!.players.opponent.rating,
-          initials: duel!.players.opponent.handle.slice(0, 2).toUpperCase(),
-          avatarGradient: "linear-gradient(135deg, #0f3d27, #1d9e75)",
-          submissionCount:
-            duel?.submissions?.filter(
-              (s) => s.handle === duel.players.opponent.handle,
-            ).length ?? 0,
-        }}
-      />
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-slate-900 to-slate-800">
+      <div className="text-white text-center">
+        <h1 className="text-4xl font-bold mb-4">{duel.player1_id === duel.player1_id ? "You vs" : ""}</h1>
+        <p className="text-2xl mb-8">Time: {formatTime(time)}</p>
 
-      <ProblemBar problem={problem} />
+        <div className="flex gap-8 justify-center mb-8">
+          <div className="text-left">
+            <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+            <p>Status: {duel.status}</p>
+          </div>
+          <div className="text-left">
+            <h2 className="text-xl font-semibold mb-2">Problem</h2>
+            <p>CF Contest: {duel.cf_contest_id}</p>
+            <p>Index: {duel.cf_index}</p>
+          </div>
+        </div>
 
-      <div className="flex flex-1 divide-x divide-border overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <SubmissionPanel
-            handle={duel!.players.me.handle}
-            submissions={
-              duel?.submissions
-                ?.filter((s) => s.handle === duel.players.me.handle)
-                .map((s) => ({
-                  id: String(s.id),
-                  verdict: s.verdict as Verdict,
-                  language: "GNU C++17",
-                  timeMs: null,
-                  memoryMb: null,
-                  submittedAt: new Date(s.submittedAt),
-                })) ?? []
-            }
-            isMe
-            dotColor="#7c6af7"
-            side="left"
-          />
-        </div>
-        <div className="flex-1 flex flex-col">
-          <SubmissionPanel
-            handle={duel!.players.opponent.handle}
-            submissions={
-              duel?.submissions
-                ?.filter((s) => s.handle === duel.players.opponent.handle)
-                .map((s) => ({
-                  id: String(s.id),
-                  verdict: s.verdict as Verdict,
-                  language: "GNU C++17",
-                  timeMs: null,
-                  memoryMb: null,
-                  submittedAt: new Date(s.submittedAt),
-                })) ?? []
-            }
-            dotColor="#1d9e75"
-            side="right"
-          />
-        </div>
+        <button
+          onClick={handleForfeit}
+          className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Forfeit
+        </button>
       </div>
-
-      <div className="flex items-center justify-between px-6 py-2.5 bg-surface border-t border-border">
-        <div className="flex items-center gap-2 text-[12px] text-white/30">
-          <span className="w-[7px] h-[7px] rounded-full bg-success animate-pulse2" />
-          Live · polling every 5s
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] font-mono text-white/30">
-            Rated · ±{ratingDelta} pts
-          </span>
-          <button
-            onClick={handleForfeit}
-            className="text-[12px] font-semibold text-danger px-3.5 py-1.5 border border-danger/20 bg-danger/5 rounded-md hover:bg-danger/10 transition-colors"
-          >
-            Forfeit
-          </button>
-        </div>
-      </div>
-
-      {isDone && (
-        <ResultBanner
-          winnerHandle={duel?.winnerHandle ?? null}
-          myHandle={user?.cfHandle ?? ""}
-          elapsedSeconds={remainingSeconds}
-          ratingDelta={ratingDelta}
-          onRematch={() => navigate("/game")}
-          onHome={() => navigate("/")}
-        />
-      )}
     </div>
   );
 }
